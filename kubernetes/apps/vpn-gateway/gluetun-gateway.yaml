@@ -1,4 +1,4 @@
-# kubernetes/infrastructure/vpn-gateway/gluetun-gateway.yaml
+# kubernetes/apps/vpn-gateway/gluetun-gateway.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -7,7 +7,7 @@ metadata:
 spec:
   replicas: 1
   strategy:
-    type: Recreate  # Only one instance due to VPN connection
+    type: Recreate
   selector:
     matchLabels:
       app: vpn-gateway
@@ -20,48 +20,52 @@ spec:
       - name: gluetun
         image: ghcr.io/qdm12/gluetun:latest
         env:
-          VPN_SERVICE_PROVIDER: "nordvpn"
-          VPN_TYPE: "openvpn"
-          OPENVPN_USER:
-            valueFrom:
-              secretKeyRef:
-                name: nordvpn-credentials
-                key: username
-          OPENVPN_PASSWORD:
-            valueFrom:
-              secretKeyRef:
-                name: nordvpn-credentials
-                key: password
-
-          # Server selection
-          SERVER_COUNTRIES: "United States"
-          SERVER_CATEGORIES: "P2P"
-
-          # Network configuration
-          FIREWALL_OUTBOUND_SUBNETS: "192.168.0.0/24,10.42.0.0/16,10.43.0.0/16"
-
-          # HTTP proxy for other containers
-          HTTP_PROXY: "on"
-          HTTP_PROXY_LOG: "on"
-          HTTP_PROXY_STEALTH: "on"
-          HTTP_PROXY_LISTENING_ADDRESS: ":8888"
-
-          # SOCKS5 proxy
-          SHADOWSOCKS: "on"
-          SHADOWSOCKS_LISTENING_ADDRESS: ":8388"
-
-          # Security
-          DOT: "on"
-          DOT_PROVIDERS: "cloudflare"
-          BLOCK_MALICIOUS: "on"
-          BLOCK_SURVEILLANCE: "on"
-
-          # Performance
-          OPENVPN_PROTOCOL: "udp"
-
-          # Monitoring
-          HEALTH_VPN_DURATION_INITIAL: "10s"
-          LOG_LEVEL: "info"
+        - name: VPN_SERVICE_PROVIDER
+          value: "nordvpn"
+        - name: VPN_TYPE
+          value: "openvpn"
+        - name: OPENVPN_USER
+          valueFrom:
+            secretKeyRef:
+              name: nordvpn-credentials
+              key: username
+        - name: OPENVPN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: nordvpn-credentials
+              key: password
+        - name: SERVER_COUNTRIES
+          value: "United States"
+        - name: SERVER_CATEGORIES
+          value: "P2P"
+        - name: FIREWALL_OUTBOUND_SUBNETS
+          value: "192.168.0.0/24,10.42.0.0/16,10.43.0.0/16"
+        - name: HTTP_PROXY
+          value: "on"
+        - name: HTTP_PROXY_LOG
+          value: "on"
+        - name: HTTP_PROXY_STEALTH
+          value: "on"
+        - name: HTTP_PROXY_LISTENING_ADDRESS
+          value: ":8888"
+        - name: SHADOWSOCKS
+          value: "on"
+        - name: SHADOWSOCKS_LISTENING_ADDRESS
+          value: ":8388"
+        - name: DOT
+          value: "on"
+        - name: DOT_PROVIDERS
+          value: "cloudflare"
+        - name: BLOCK_MALICIOUS
+          value: "on"
+        - name: BLOCK_SURVEILLANCE
+          value: "on"
+        - name: OPENVPN_PROTOCOL
+          value: "udp"
+        - name: HEALTH_VPN_DURATION_INITIAL
+          value: "10s"
+        - name: LOG_LEVEL
+          value: "info"
 
         securityContext:
           capabilities:
