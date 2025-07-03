@@ -1,0 +1,7 @@
+# kubernetes/apps/media/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: media
+  labels:
+    name: media
