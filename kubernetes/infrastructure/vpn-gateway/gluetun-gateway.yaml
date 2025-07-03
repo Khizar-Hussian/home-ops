@@ -1,0 +1,120 @@
+# kubernetes/infrastructure/vpn-gateway/gluetun-gateway.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vpn-gateway
+  namespace: vpn-gateway
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # Only one instance due to VPN connection
+  selector:
+    matchLabels:
+      app: vpn-gateway
+  template:
+    metadata:
+      labels:
+        app: vpn-gateway
+    spec:
+      containers:
+      - name: gluetun
+        image: ghcr.io/qdm12/gluetun:latest
+        env:
+          VPN_SERVICE_PROVIDER: "nordvpn"
+          VPN_TYPE: "openvpn"
+          OPENVPN_USER:
+            valueFrom:
+              secretKeyRef:
+                name: nordvpn-credentials
+                key: username
+          OPENVPN_PASSWORD:
+            valueFrom:
+              secretKeyRef:
+                name: nordvpn-credentials
+                key: password
+
+          # Server selection
+          SERVER_COUNTRIES: "United States"
+          SERVER_CATEGORIES: "P2P"
+
+          # Network configuration
+          FIREWALL_OUTBOUND_SUBNETS: "192.168.0.0/24,10.42.0.0/16,10.43.0.0/16"
+
+          # HTTP proxy for other containers
+          HTTP_PROXY: "on"
+          HTTP_PROXY_LOG: "on"
+          HTTP_PROXY_STEALTH: "on"
+          HTTP_PROXY_LISTENING_ADDRESS: ":8888"
+
+          # SOCKS5 proxy
+          SHADOWSOCKS: "on"
+          SHADOWSOCKS_LISTENING_ADDRESS: ":8388"
+
+          # Security
+          DOT: "on"
+          DOT_PROVIDERS: "cloudflare"
+          BLOCK_MALICIOUS: "on"
+          BLOCK_SURVEILLANCE: "on"
+
+          # Performance
+          OPENVPN_PROTOCOL: "udp"
+
+          # Monitoring
+          HEALTH_VPN_DURATION_INITIAL: "10s"
+          LOG_LEVEL: "info"
+
+        securityContext:
+          capabilities:
+            add: [NET_ADMIN]
+          runAsNonRoot: false
+          runAsUser: 0
+
+        ports:
+        - containerPort: 8888
+          name: http-proxy
+        - containerPort: 8388
+          name: socks5
+        - containerPort: 8000
+          name: control
+
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vpn-gateway
+  namespace: vpn-gateway
+spec:
+  selector:
+    app: vpn-gateway
+  ports:
+  - name: http-proxy
+    port: 8888
+    targetPort: 8888
+  - name: socks5
+    port: 8388
+    targetPort: 8388
+  - name: control
+    port: 8000
+    targetPort: 8000
+  type: ClusterIP
