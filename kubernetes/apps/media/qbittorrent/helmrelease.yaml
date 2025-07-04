@@ -39,7 +39,7 @@ spec:
                 192.168.0.0/16, 10.42.0.0/16, 10.43.0.0/16
               QBT_Preferences__WebUI__LocalHostAuth: false
               QBT_Preferences__WebUI__Username: admin
-              QBT_Preferences__WebUI__Password_PBKDF2: "@ByteArray(ARQ77eY1NUZaQsuDHbIMCA==:0WMRkYTUWVT9wVvdDtHAjU9b3b7uB8NR1Gur2hmQCvCDpm39Q+PsJRJPaCU51dEiz+dTzh8qbPsL8WkFljQYFQ==)"  # adminadmin
+              QBT_Preferences__WebUI__Password_PBKDF2: "@ByteArray(ARQ77eY1NUZaQsuDHbIMCA==:0WMRkYTUWVT9wVvdDtHAjU9b3b7uB8NR1Gur2hmQCvCDpm39Q+PsJRJPaCU51dEiz+dTzh8qbPsL8WkFljQYFQ==)"
 
               # Connection & Proxy Settings
               QBT_Preferences__Connection__ProxyType: "HTTP"
@@ -51,7 +51,6 @@ spec:
               # Performance & Limits
               QBT_Preferences__Downloads__TempPath: "/incomplete-downloads"
               QBT_Preferences__Downloads__SavePath: "/downloads/complete"
-              QBT_Preferences__Downloads__ScanDirsV2: "@Variant(\\x00\\x00\\x00\\x1c\\x00\\x00\\x00\\x02\\x00\\x00\\x00\\x16\\x00/\\x00d\\x00o\\x00w\\x00n\\x00l\\x00o\\x00a\\x00d\\x00s\\x00/\\x00w\\x00a\\x00t\\x00c\\x00h\\x00\\x00\\x00\\x02\\x00\\x00\\x00\\x00)"
               QBT_Preferences__Downloads__PreAllocation: false
 
               # BitTorrent Settings
@@ -61,7 +60,7 @@ spec:
               QBT_Preferences__Bittorrent__MaxUploadsPerTorrent: 4
               QBT_Preferences__Bittorrent__DHT: true
               QBT_Preferences__Bittorrent__PeX: true
-              QBT_Preferences__Bittorrent__LSD: false  # Local peer discovery off for VPN
+              QBT_Preferences__Bittorrent__LSD: false
 
               # Advanced Settings
               QBT_Preferences__Advanced__RecheckOnCompletion: false
@@ -87,7 +86,8 @@ spec:
             securityContext:
               allowPrivilegeEscalation: false
               readOnlyRootFilesystem: true
-              capabilities: { drop: ["ALL"] }
+              capabilities:
+                drop: ["ALL"]
 
             resources:
               requests:
@@ -103,9 +103,9 @@ spec:
         runAsGroup: 1000
         fsGroup: 1000
         fsGroupChangePolicy: OnRootMismatch
-        seccompProfile: { type: RuntimeDefault }
+        seccompProfile:
+          type: RuntimeDefault
       annotations:
-        # Documentation annotation
         vpn.homelab/gateway: "true"
 
     service:
@@ -117,26 +117,31 @@ spec:
 
     persistence:
       config:
-        type: persistentVolumeClaim
         existingClaim: media-nfs-pvc
-        subPath: config/qbittorrent
-        globalMounts:
-          - path: /config
+        # Remove subPath - use advancedMounts instead
+        advancedMounts:
+          qbittorrent:
+            app:
+              - path: /config
+                subPath: config/qbittorrent
       downloads:
-        type: persistentVolumeClaim
         existingClaim: media-nfs-pvc
-        subPath: downloads
-        globalMounts:
-          - path: /downloads
+        advancedMounts:
+          qbittorrent:
+            app:
+              - path: /downloads
+                subPath: downloads
       incomplete:
-        type: persistentVolumeClaim
         existingClaim: media-nfs-pvc
-        subPath: downloads/incomplete
-        globalMounts:
-          - path: /incomplete-downloads
+        advancedMounts:
+          qbittorrent:
+            app:
+              - path: /incomplete-downloads
+                subPath: downloads/incomplete
       watch:
-        type: persistentVolumeClaim
         existingClaim: media-nfs-pvc
-        subPath: downloads/watch
-        globalMounts:
-          - path: /downloads/watch
+        advancedMounts:
+          qbittorrent:
+            app:
+              - path: /downloads/watch
+                subPath: downloads/watch
