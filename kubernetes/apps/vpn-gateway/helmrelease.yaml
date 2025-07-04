@@ -51,7 +51,7 @@ spec:
               # Proxy Configuration
               HTTPPROXY: "on"
               HTTPPROXY_LOG: "on"
-              HTTPPROXY_STEALTH: "on"
+              HTTPPROXY_STEALTH: "off"
               HTTPPROXY_LISTENING_ADDRESS: ":8888"
               SHADOWSOCKS: "on"
               SHADOWSOCKS_LISTENING_ADDRESS: ":8388"
