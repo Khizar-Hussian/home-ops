@@ -88,6 +88,14 @@ spec:
               runAsNonRoot: false
               runAsUser: 0
 
+            ports:
+              - name: http-proxy
+                containerPort: 8888
+              - name: socks5
+                containerPort: 8388
+              - name: control
+                containerPort: 8000
+
             resources:
               requests:
                 cpu: 100m
