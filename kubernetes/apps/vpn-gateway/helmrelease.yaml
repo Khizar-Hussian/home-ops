@@ -49,10 +49,10 @@ spec:
               FIREWALL_OUTBOUND_SUBNETS: "192.168.0.0/16,10.42.0.0/16,10.43.0.0/16"
               
               # Proxy Configuration
-              HTTP_PROXY: "on"
-              HTTP_PROXY_LOG: "on"
-              HTTP_PROXY_STEALTH: "on"
-              HTTP_PROXY_LISTENING_ADDRESS: ":8888"
+              HTTPPROXY: "on"
+              HTTPPROXY_LOG: "on"
+              HTTPPROXY_STEALTH: "on"
+              HTTPPROXY_LISTENING_ADDRESS: ":8888"
               SHADOWSOCKS: "on"
               SHADOWSOCKS_LISTENING_ADDRESS: ":8388"
               
