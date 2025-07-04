@@ -6,6 +6,7 @@ metadata:
   namespace: vpn-gateway
 spec:
   interval: 15m
+  timeout: 10m
   chartRef:
     kind: OCIRepository
     name: app-template
@@ -44,6 +45,7 @@ spec:
               SERVER_COUNTRIES: "United States"
               SERVER_CATEGORIES: "P2P"
               OPENVPN_PROTOCOL: "udp"
+              SERVER_SELECTION_STRATEGY: "random"
               FIREWALL_OUTBOUND_SUBNETS: "192.168.0.0/16,10.42.0.0/16,10.43.0.0/16"
               
               # Proxy Configuration
@@ -61,8 +63,18 @@ spec:
               BLOCK_SURVEILLANCE: "on"
               
               # Health Check
-              HEALTH_VPN_DURATION_INITIAL: "10s"
+              HEALTH_VPN_DURATION_INITIAL: "30s"
+              HEALTH_SERVER_ADDRESS: "0.0.0.0:8000"
               LOG_LEVEL: "info"
+              
+              # Connection Reliability
+              OPENVPN_CONNECT_TIMEOUT: "60s"
+              OPENVPN_KEEPALIVE: "10 60"
+              OPENVPN_VERB: "3"
+              
+              # Debugging
+              OPENVPN_DEBUG: "1"
+              UPDATER_PERIOD: "24h"
 
             probes:
               liveness: &probes
@@ -72,13 +84,22 @@ spec:
                   httpGet:
                     path: /
                     port: 8000
-                  initialDelaySeconds: 30
-                  periodSeconds: 10
-                  timeoutSeconds: 1
-                  failureThreshold: 3
+                  initialDelaySeconds: 60
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 5
               readiness: *probes
               startup:
-                enabled: false
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /
+                    port: 8000
+                  initialDelaySeconds: 10
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  failureThreshold: 30
 
             securityContext:
               capabilities:
