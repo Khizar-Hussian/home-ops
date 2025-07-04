@@ -6,6 +6,7 @@ metadata:
   namespace: media
 spec:
   interval: 15m
+  timeout: 10m
   chartRef:
     kind: OCIRepository
     name: app-template
@@ -122,18 +123,10 @@ spec:
               PORT_FORWARDED: "/tmp/gluetun/forwarded_port"
 
             probes:
-              liveness: &probes
-                enabled: true
-                custom: true
-                spec:
-                  httpGet:
-                    path: /api/v2/app/version
-                    port: *port
-                  initialDelaySeconds: 30
-                  periodSeconds: 10
-                  timeoutSeconds: 1
-                  failureThreshold: 3
-              readiness: *probes
+              liveness:
+                enabled: false
+              readiness:
+                enabled: false
               startup:
                 enabled: false
 
