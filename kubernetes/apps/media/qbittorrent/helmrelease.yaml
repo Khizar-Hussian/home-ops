@@ -11,6 +11,17 @@ spec:
     name: app-template
     namespace: default
   values:
+    defaultPodOptions:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+
     controllers:
       qbittorrent:
         annotations:
@@ -18,8 +29,8 @@ spec:
         containers:
           app:
             image:
-              repository: ghcr.io/onedr0p/qbittorrent-beta
-              tag: 5.0.3@sha256:4b9de3356475bd97fda3fb4d98f213e8d139aef15e7bd20dab72973e661901dd
+              repository: ghcr.io/onedr0p/qbittorrent
+              tag: 4.6.7@sha256:5391f94b321d563c3b44136a5e799b7e4e4888926c1c31689e42c45017903296
             env:
               # VPN Gateway Configuration
               HTTP_PROXY: "http://vpn-gateway.vpn-gateway.svc.cluster.local:8888"
@@ -38,8 +49,6 @@ spec:
               QBT_Preferences__WebUI__AuthSubnetWhitelist: |-
                 192.168.0.0/16, 10.42.0.0/16, 10.43.0.0/16
               QBT_Preferences__WebUI__LocalHostAuth: false
-              QBT_Preferences__WebUI__Username: admin
-              QBT_Preferences__WebUI__Password_PBKDF2: "@ByteArray(ARQ77eY1NUZaQsuDHbIMCA==:0WMRkYTUWVT9wVvdDtHAjU9b3b7uB8NR1Gur2hmQCvCDpm39Q+PsJRJPaCU51dEiz+dTzh8qbPsL8WkFljQYFQ==)"
 
               # Connection & Proxy Settings
               QBT_Preferences__Connection__ProxyType: "HTTP"
@@ -95,18 +104,6 @@ spec:
                 memory: 512Mi
               limits:
                 memory: 4Gi
-
-    defaultPodOptions:
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
-        fsGroup: 1000
-        fsGroupChangePolicy: OnRootMismatch
-        seccompProfile:
-          type: RuntimeDefault
-      annotations:
-        vpn.homelab/gateway: "true"
 
     service:
       app:

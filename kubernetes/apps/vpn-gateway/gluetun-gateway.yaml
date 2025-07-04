@@ -1,124 +1,106 @@
 # kubernetes/apps/vpn-gateway/gluetun-gateway.yaml
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
 metadata:
   name: vpn-gateway
   namespace: vpn-gateway
 spec:
-  replicas: 1
-  strategy:
-    type: Recreate
-  selector:
-    matchLabels:
-      app: vpn-gateway
-  template:
-    metadata:
-      labels:
-        app: vpn-gateway
-    spec:
-      containers:
-      - name: gluetun
-        image: ghcr.io/qdm12/gluetun:latest
-        env:
-        - name: VPN_SERVICE_PROVIDER
-          value: "nordvpn"
-        - name: VPN_TYPE
-          value: "openvpn"
-        - name: OPENVPN_USER
-          valueFrom:
-            secretKeyRef:
-              name: nordvpn-credentials
-              key: username
-        - name: OPENVPN_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: nordvpn-credentials
-              key: password
-        - name: SERVER_COUNTRIES
-          value: "United States"
-        - name: SERVER_CATEGORIES
-          value: "P2P"
-        - name: FIREWALL_OUTBOUND_SUBNETS
-          value: "192.168.0.0/24,10.42.0.0/16,10.43.0.0/16"
-        - name: HTTP_PROXY
-          value: "on"
-        - name: HTTP_PROXY_LOG
-          value: "on"
-        - name: HTTP_PROXY_STEALTH
-          value: "on"
-        - name: HTTP_PROXY_LISTENING_ADDRESS
-          value: ":8888"
-        - name: SHADOWSOCKS
-          value: "on"
-        - name: SHADOWSOCKS_LISTENING_ADDRESS
-          value: ":8388"
-        - name: DOT
-          value: "on"
-        - name: DOT_PROVIDERS
-          value: "cloudflare"
-        - name: BLOCK_MALICIOUS
-          value: "on"
-        - name: BLOCK_SURVEILLANCE
-          value: "on"
-        - name: OPENVPN_PROTOCOL
-          value: "udp"
-        - name: HEALTH_VPN_DURATION_INITIAL
-          value: "10s"
-        - name: LOG_LEVEL
-          value: "info"
+  interval: 15m
+  chartRef:
+    kind: OCIRepository
+    name: app-template
+    namespace: default
+  values:
+    defaultPodOptions:
+      automountServiceAccountToken: false
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
 
-        securityContext:
-          capabilities:
-            add: [NET_ADMIN]
-          runAsNonRoot: false
-          runAsUser: 0
+    controllers:
+      vpn-gateway:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: ghcr.io/qdm12/gluetun
+              tag: v3.39.1@sha256:6a8058e626763cbf735ac2f78c774dbb24fec2490bd9d9f7d67e22592cb4a991
+            env:
+              # VPN Configuration
+              VPN_SERVICE_PROVIDER: "nordvpn"
+              VPN_TYPE: "openvpn"
+              OPENVPN_USER:
+                valueFrom:
+                  secretKeyRef:
+                    name: nordvpn-credentials
+                    key: username
+              OPENVPN_PASSWORD:
+                valueFrom:
+                  secretKeyRef:
+                    name: nordvpn-credentials
+                    key: password
+              SERVER_COUNTRIES: "United States"
+              SERVER_CATEGORIES: "P2P"
+              OPENVPN_PROTOCOL: "udp"
+              FIREWALL_OUTBOUND_SUBNETS: "192.168.0.0/16,10.42.0.0/16,10.43.0.0/16"
+              
+              # Proxy Configuration
+              HTTP_PROXY: "on"
+              HTTP_PROXY_LOG: "on"
+              HTTP_PROXY_STEALTH: "on"
+              HTTP_PROXY_LISTENING_ADDRESS: ":8888"
+              SHADOWSOCKS: "on"
+              SHADOWSOCKS_LISTENING_ADDRESS: ":8388"
+              
+              # DNS Configuration
+              DOT: "on"
+              DOT_PROVIDERS: "cloudflare"
+              BLOCK_MALICIOUS: "on"
+              BLOCK_SURVEILLANCE: "on"
+              
+              # Health Check
+              HEALTH_VPN_DURATION_INITIAL: "10s"
+              LOG_LEVEL: "info"
 
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /
+                    port: 8000
+                  initialDelaySeconds: 30
+                  periodSeconds: 10
+                  timeoutSeconds: 1
+                  failureThreshold: 3
+              readiness: *probes
+              startup:
+                enabled: false
+
+            securityContext:
+              capabilities:
+                add: [NET_ADMIN]
+              runAsNonRoot: false
+              runAsUser: 0
+
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                cpu: 500m
+                memory: 512Mi
+
+    service:
+      app:
+        controller: vpn-gateway
         ports:
-        - containerPort: 8888
-          name: http-proxy
-        - containerPort: 8388
-          name: socks5
-        - containerPort: 8000
-          name: control
-
-        resources:
-          requests:
-            cpu: 100m
-            memory: 128Mi
-          limits:
-            cpu: 500m
-            memory: 512Mi
-
-        livenessProbe:
-          httpGet:
-            path: /
+          http-proxy:
+            port: 8888
+          socks5:
+            port: 8388
+          control:
             port: 8000
-          initialDelaySeconds: 30
-          periodSeconds: 10
-
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 8000
-          initialDelaySeconds: 10
-          periodSeconds: 5
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: vpn-gateway
-  namespace: vpn-gateway
-spec:
-  selector:
-    app: vpn-gateway
-  ports:
-  - name: http-proxy
-    port: 8888
-    targetPort: 8888
-  - name: socks5
-    port: 8388
-    targetPort: 8388
-  - name: control
-    port: 8000
-    targetPort: 8000
-  type: ClusterIP
