@@ -1,4 +1,4 @@
-# kubernetes/apps/media/storage/nfs-storage.yaml
+---
 apiVersion: v1
 kind: PersistentVolume
 metadata:
